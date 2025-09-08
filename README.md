@@ -10,6 +10,8 @@ Is a nodejs server that receives those frames and exposes a websocket, that a si
 
 # How it works
 
+![Klassresan Visualization](gfx/klassresan.gif)
+
 ```mermaid
 sequenceDiagram
     autonumber
@@ -30,4 +32,8 @@ sequenceDiagram
 
 ```
 
+# Resources
+
 Inspired from https://github.com/timKraeuter/VisualDebugger
+
+Based of https://github.com/JetBrains/intellij-sdk-code-samples/tree/main/tool_window

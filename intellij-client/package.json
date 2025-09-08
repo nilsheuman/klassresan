@@ -1,5 +1,5 @@
 {
-  "name": "client",
+  "name": "klassresan",
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
@@ -7,7 +7,7 @@
     "start": "node server.js"
   },
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "description": "",
   "dependencies": {
     "ws": "^8.18.3"
