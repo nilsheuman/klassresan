@@ -1,0 +1,39 @@
+<idea-plugin>
+
+  <!-- Unique id for this plugin. Must stay constant for the life of the plugin. -->
+  <id>se.snackesurf.intellij.klassresan</id>
+
+  <!-- Text to display as name on Settings | Plugin page -->
+  <name>Klassresan</name>
+
+  <!-- Indicate this plugin can be loaded in all IntelliJ Platform-based products. -->
+  <depends>com.intellij.modules.platform</depends>
+
+  <projectListeners>
+    <listener class="se.snackesurf.intellij.klassresan.DebugProcessListener"
+              topic="com.intellij.xdebugger.XDebuggerManagerListener"/>
+  </projectListeners>
+
+  <!-- Text to display as description on Settings | Plugin page -->
+  <description>
+    <![CDATA[
+      Simple plugin that hooks into the debugger and posts the stack frames to a http endpoint.<br>
+      <a href="https://github.com/nilsheuman/klassresan">github.com/nilsheuman/klassresan</a><br>
+      <br/>
+    ]]>
+  </description>
+  <change-notes>
+    <![CDATA[
+      <ul>
+        <li><b>0.1.0</b> Initial Kotlin Plugin.</li>
+      </ul>
+    ]]>
+  </change-notes>
+
+  <!-- Text to display as company information on Settings | Plugin page -->
+  <vendor url="https://github.com/nilsheuman/klassresan">Klassresan</vendor>
+
+  <extensions defaultExtensionNs="com.intellij">
+  </extensions>
+
+</idea-plugin>
