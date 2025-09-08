@@ -10,7 +10,7 @@ additional_files=(
 )
 
 # Process all .h and .cpp files in src directory
-for file in  src/main/java/org/intellij/sdk/toolWindow/*.java; do
+for file in  src/main/java/se/snackesurf/intellij/klassresan/*.kt; do
   [ -f "$file" ] || continue
   filename=$(basename "$file")
   printf "\n\n// File: %s\n\n" "$filename"

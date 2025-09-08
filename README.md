@@ -1,12 +1,12 @@
 # Klassresan
 
-Tools for visualizing code, focus on java/kotlin in intellij
+Tools for visualizing code, focus on java/kotlin in intellij.
 
 ## [Intellj Plugin](intellij-plugin/)
-Is a extension for [Intellij](https://www.jetbrains.com/idea/) that hooks into the debugger and posts stack frames over http.
+Extension for [Intellij](https://www.jetbrains.com/idea/) that hooks into the debugger and posts details of stack frames over HTTP. Download the extension as a zip from [releases](https://github.com/nilsheuman/klassresan/releases/).
 
 ## [Intellj Client](intellij-client/)
-Is a nodejs server that receives those frames and exposes a websocket, that a simple web page draws graphs with [graphvis](https://github.com/mdaines/viz-js)
+NodeJS Server that receives those frames and exposes a websocket. It serves a simple web page draws graphs with [graphvis](https://github.com/mdaines/viz-js).
 
 # How it works
 
