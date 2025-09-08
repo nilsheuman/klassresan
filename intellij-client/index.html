@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Klassresan</title>
+    <script src="https://unpkg.com/viz.js@2.1.2/viz.js"></script>
+    <script src="https://unpkg.com/viz.js@2.1.2/full.render.js"></script>
+    <style>
+        #status {
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          display: inline-block;
+          margin-left: 5px;
+        }
+        #status.connected { background: #0c0; }
+        #status.disconnected { background: red; }
+
+        #graph svg {
+            transform: scale(0.75);
+            transform-origin: top left;
+        }
+    </style>
+</head>
+<body>
+<h3>Klassresan <span id="status" class="disconnected"></span></h3>
+<div id="graph"></div>
+<pre id="dot"></pre>
+
+<script>
+let ws;
+let nodes = new Map();        // fileName:method
+let edges = new Set();        // from->to
+let clusters = new Map();     // file -> [method]
+let activeNode = null;
+
+function connect() {
+  ws = new WebSocket(`ws://${location.host}`);
+  ws.onopen = () => setStatus(true);
+  ws.onclose = () => {
+    setStatus(false);
+    setTimeout(connect, 2000);
+  };
+  ws.onmessage = (event) => {
+    try {
+      const trace = JSON.parse(event.data);
+      handleMessage(trace);
+    } catch (err) {
+      console.error("Invalid message", err);
+    }
+  };
+}
+
+function getKey(frame) {
+  return `${frame.fileName}:${frame.method}`;
+}
+
+function getEdgeKey(frame0, frame1) {
+  return `${getKey(frame1)}->${getKey(frame0)}`;
+}
+
+function handleMessage(trace) {
+
+  if (!Array.isArray(trace) || trace.length === 0) return;
+
+  // can filter some unwanted files here
+  const validTrace = trace.filter(node => node.file !== 'TransactionalMethodInterceptor.kt' && node.line !== -1)
+
+  if (validTrace.length === 0) return;
+
+  activeNode = getKey(validTrace[0]); // top frame
+
+  for (let i = 0; i < validTrace.length; i++) {
+    const frame = validTrace[i];
+    const id = `${frame.fileName}:${frame.method}`;
+
+    if (i > 0) { // have previous node, link it
+      const edgeKey = getEdgeKey(validTrace[i-1], validTrace[i])
+      edges.add(edgeKey);
+    }
+
+    if (!nodes.has(id)) {
+      nodes.set(id, frame);
+    }
+
+    if (!clusters.has(frame.fileName)) clusters.set(frame.fileName, []);
+    if (!clusters.get(frame.fileName).includes(id)) clusters.get(frame.fileName).push(id);
+  }
+
+  renderGraph();
+}
+
+function setStatus(ok) {
+  const el = document.getElementById("status");
+  el.className = ok ? "connected" : "disconnected";
+}
+
+function sanitize(str) {
+  return str.replace(/[^a-zA-Z0-9_]/g, "_");
+}
+
+function renderGraph() {
+  let dot = 'digraph G {\n  rankdir=LR;\n  node [shape=ellipse];\n\n'; // rankdir left to right
+  // let dot = 'digraph G {\n node [shape=ellipse];\n\n'; // rankdir top down
+  const resourceClusters = []
+
+  // resource clusters, gray background
+  for (const [file, methods] of clusters.entries()) {
+    if (!file.includes('Resource')) {
+      continue
+    }
+    
+    const clusterName = `cluster_${sanitize(file)}`
+    dot += `      subgraph ${clusterName} {\n label="${file}";\n`;
+    dot+="style=filled;"
+    dot+="fillcolor=\"#dddddd\";"
+    for (const id of methods) {
+      const frame = nodes.get(id);
+      const shape = file.includes("Resource") ? "shape=box" : "";
+      const active = id === activeNode ? "color=blue penwidth=2 fillcolor=\"#00ccff\", style=filled" : "";
+      dot += `      "${id}" [label="${frame.method}" ${shape} ${active}];\n`;
+    }
+    dot += '    }\n\n';
+  }
+
+  // normal clusters
+  for (const [file, methods] of clusters.entries()) {
+    if (file.includes('Resource')) {
+      continue
+    }
+    const clusterName = `cluster_${sanitize(file)}`
+    dot += `  subgraph ${clusterName} {\n    label="${file}";\n`;
+    
+    dot+='    { rank=same\n'
+    dot+= '      edge [constraint=false];\n'
+    
+    for (const id of methods) {
+      const frame = nodes.get(id);
+      const shape = file.includes("Resource") ? "shape=box, fillcolor=\"#cccccc\", style=filled" : "";
+      const active = id === activeNode ? "color=blue penwidth=2 fillcolor=\"#00ccff\", style=filled" : "";
+      dot += `      "${id}" [label="${frame.method}" ${shape} ${active}];\n`;
+    }
+    dot += '    }\n'; // same
+    dot += '  }\n\n';
+  }
+
+  // edges
+  for (const edge of edges) {
+    const [from, to] = edge.split("->");
+    dot += `  "${from}" -> "${to}";\n`;
+  }
+
+  dot += '}';
+
+  // show the dot output
+  // document.getElementById('dot').innerHTML = dot
+
+  try {
+    const viz = new Viz();
+    viz.renderSVGElement(dot).then(svg => {
+      const graphDiv = document.getElementById("graph");
+      graphDiv.innerHTML = "";
+      graphDiv.appendChild(svg);
+    }).catch(err => console.error("Viz.js render error", err));
+  } catch (e) {
+    console.error("DOT build failed", e);
+  }
+}
+
+connect();
+</script>
+
+</body>
+</html>
