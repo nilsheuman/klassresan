@@ -5,12 +5,13 @@ import java.net.URI
 
 class HttpPublisher : Publisher {
 
-    override fun publish(frames: List<FrameInfo>) {
+    override fun publish(frames: List<FrameInfo>, source: String) {
         ApplicationManager.getApplication().executeOnPooledThread {
             try {
-                val json = toJson(frames)
+                val json = toJson(frames, source)
 
-                val uri = URI(ENDPOINT)
+                val uri = URI(BASE_URL + sourceToEndpoint(source))
+                println("post $uri")
                 val conn = (uri.toURL().openConnection() as HttpURLConnection).apply {
                     requestMethod = "POST"
                     doOutput = true
@@ -28,12 +29,20 @@ class HttpPublisher : Publisher {
         }
     }
 
-    private fun toJson(frames: List<FrameInfo>): String =
+    private fun toJson(frames: List<FrameInfo>, source: String): String =
         frames.joinToString(prefix = "[", postfix = "]") { f ->
-            """{"fileName":"${f.fileName}","filePath":"${f.filePath}","line":${f.line},"offset":${f.offset},"method":"${f.method}"}"""
+            """{"fileName":"${f.fileName}","filePath":"${f.filePath}","line":${f.line},"offset":${f.offset},"method":"${f.method}","source":"$source"}"""
         }
 
+    private fun sourceToEndpoint(source: String): String {
+        return when (source) {
+            "debugger" -> "/debugger"
+            "editor" -> "/editor"
+            else -> "/unknown"
+        }
+    }
+
     companion object {
-        private const val ENDPOINT = "http://localhost:8091/frames"
+        private const val BASE_URL = "http://localhost:8091"
     }
 }

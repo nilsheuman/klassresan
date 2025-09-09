@@ -46,7 +46,7 @@ class DebugProcessListener(project: Project) : XDebuggerManagerListener {
         }
 
         if (last && frames.isNotEmpty()) {
-          publisher.publish(frames)
+          publisher.publish(frames, "debugger")
         }
       }
     })

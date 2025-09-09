@@ -12,6 +12,8 @@
   <projectListeners>
     <listener class="se.snackesurf.intellij.klassresan.DebugProcessListener"
               topic="com.intellij.xdebugger.XDebuggerManagerListener"/>
+    <listener class="se.snackesurf.intellij.klassresan.EditorCaretListener"
+              topic="com.intellij.openapi.project.ProjectManagerListener"/>
   </projectListeners>
 
   <!-- Text to display as description on Settings | Plugin page -->
