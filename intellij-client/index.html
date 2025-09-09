@@ -26,6 +26,7 @@
 <h3>Klassresan <span id="status" class="disconnected"></span></h3>
 <div id="graph"></div>
 <pre id="dot"></pre>
+<a href="javascript:clear();">clear</a>
 
 <script>
 let ws;
@@ -35,6 +36,7 @@ let clusters = new Map();     // file -> [method]
 let activeNode = null;
 
 function connect() {
+  console.log('connect')
   ws = new WebSocket(`ws://${location.host}`);
   ws.onopen = () => setStatus(true);
   ws.onclose = () => {
@@ -64,7 +66,11 @@ function handleMessage(trace) {
   if (!Array.isArray(trace) || trace.length === 0) return;
 
   // can filter some unwanted files here
-  const validTrace = trace.filter(node => node.file !== 'TransactionalMethodInterceptor.kt' && node.line !== -1)
+  const validTrace = trace.filter( node =>
+       node.file !== 'TransactionalMethodInterceptor.kt'
+    && node.method !== 'unknown_method'
+    && node.line !== -1
+  )
 
   if (validTrace.length === 0) return;
 
@@ -97,6 +103,14 @@ function setStatus(ok) {
 
 function sanitize(str) {
   return str.replace(/[^a-zA-Z0-9_]/g, "_");
+}
+
+function clear() {
+  nodes = new Map();
+  edges = new Set();
+  clusters = new Map();
+  activeNode = null;
+  renderGraph()
 }
 
 function renderGraph() {
