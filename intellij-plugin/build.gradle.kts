@@ -1,10 +1,10 @@
 plugins {
-  kotlin("jvm") version "1.9.23"
+  kotlin("jvm") version "2.1.0"
   id("org.jetbrains.intellij.platform") version "2.8.0"
 }
 
 group = "org.intellij.sdk"
-version = "0.1.1"
+version = "0.2.1"
 
 repositories {
   mavenCentral()
@@ -21,6 +21,9 @@ dependencies {
 
   implementation("org.java-websocket:Java-WebSocket:1.5.6")
   implementation(kotlin("stdlib"))
+
+  testImplementation("junit:junit:4.13.2")
+  testImplementation(kotlin("test"))
 }
 
 intellijPlatform {
@@ -40,4 +43,7 @@ intellijPlatform {
 
 tasks.buildPlugin {
   archiveBaseName.set("klassresan")
+}
+tasks.test {
+  useJUnitPlatform()
 }

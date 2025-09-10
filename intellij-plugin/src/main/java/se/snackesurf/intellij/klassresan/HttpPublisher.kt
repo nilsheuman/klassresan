@@ -11,7 +11,7 @@ class HttpPublisher : Publisher {
                 val json = toJson(frames, source)
 
                 val uri = URI(BASE_URL + sourceToEndpoint(source))
-                println("post $uri")
+//                println("post $uri")
                 val conn = (uri.toURL().openConnection() as HttpURLConnection).apply {
                     requestMethod = "POST"
                     doOutput = true
@@ -30,14 +30,13 @@ class HttpPublisher : Publisher {
     }
 
     private fun toJson(frames: List<FrameInfo>, source: String): String =
-        frames.joinToString(prefix = "[", postfix = "]") { f ->
-            """{"fileName":"${f.fileName}","filePath":"${f.filePath}","line":${f.line},"offset":${f.offset},"method":"${f.method}","source":"$source"}"""
-        }
+        frames.joinToString(prefix = "[", postfix = "]") { it.toJson(source) }
 
     private fun sourceToEndpoint(source: String): String {
         return when (source) {
             "debugger" -> "/debugger"
             "editor" -> "/editor"
+            "hierarchy" -> "/hierarchy"
             else -> "/unknown"
         }
     }

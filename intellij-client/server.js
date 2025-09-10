@@ -16,6 +16,18 @@ const server = http.createServer((req, res) => {
         res.end(data);
       }
     });
+  } else if (req.method === "GET" && (req.url === "/sample.js")) {
+    // Serve index.html
+    const filePath = path.join(__dirname, "sample.js");
+    fs.readFile(filePath, (err, data) => {
+      if (err) {
+        res.writeHead(500, { "Content-Type": "text/plain" });
+        res.end("Error loading sample.js\n");
+      } else {
+        res.writeHead(200, { "Content-Type": "text/html" });
+        res.end(data);
+      }
+    });
   } else if (req.method === "POST") {
     let body = "";
     req.on("data", chunk => {

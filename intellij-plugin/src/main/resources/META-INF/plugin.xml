@@ -10,9 +10,11 @@
   <depends>com.intellij.modules.platform</depends>
 
   <projectListeners>
-    <listener class="se.snackesurf.intellij.klassresan.DebugProcessListener"
+    <!--  listen to debugger starts  -->
+    <listener class="se.snackesurf.intellij.klassresan.hooks.DebugProcessListener"
               topic="com.intellij.xdebugger.XDebuggerManagerListener"/>
-    <listener class="se.snackesurf.intellij.klassresan.EditorCaretListener"
+    <!-- listen to moving the cursor in files -->
+    <listener class="se.snackesurf.intellij.klassresan.hooks.EditorCaretListener"
               topic="com.intellij.openapi.project.ProjectManagerListener"/>
   </projectListeners>
 
@@ -36,6 +38,8 @@
   <vendor url="https://github.com/nilsheuman/klassresan">Klassresan</vendor>
 
   <extensions defaultExtensionNs="com.intellij">
+    <postStartupActivity implementation="se.snackesurf.intellij.klassresan.hooks.HierarchyProjectActivity"/>
   </extensions>
+
 
 </idea-plugin>

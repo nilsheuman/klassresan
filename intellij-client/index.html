@@ -20,10 +20,44 @@
             transform: scale(0.75);
             transform-origin: top left;
         }
+
+        #dot {
+          /* dot code is written but hidden */
+          display: none;
+        }
+
+        #settings {
+          display: none;
+          margin: 10px 0;
+          padding: 10px;
+          border: 1px solid #ccc;
+          background: #f9f9f9;
+        }
+        #settings textarea {
+          width: 100%;
+          height: 50px;
+        }
     </style>
 </head>
 <body>
 <h3>Klassresan <span id="status" class="disconnected"></span></h3>
+<button onclick="toggleSettings()">⚙️ Settings</button>
+<div id="settings">
+  <label>Server URL (empty = localhost):<br>
+    <input type="text" id="serverUrl">
+  </label>
+  <br><br>
+  <label>Ignored Classes (comma separated):<br>
+    <textarea id="ignoredClasses"></textarea>
+  </label>
+  <br><br>
+  <label>Ignored Projects/Packages (comma separated):<br>
+    <textarea id="ignoredProjects"></textarea>
+  </label>
+  <br><br>
+  <button onclick="saveSettings()">Save Settings</button>
+</div>
+
 <div id="graph"></div>
 <pre id="dot"></pre>
 <a href="javascript:clear();">clear</a>
@@ -33,11 +67,48 @@ let ws;
 let nodes = new Map();        // fileName:method
 let edges = new Set();        // from->to
 let clusters = new Map();     // file -> [method]
-let activeNode = null;
+let activeDebuggerNode = null;
+let activeEditorNode = null;
+let activeHierarchyNode = null;
+
+let settings = {
+  serverUrl: "",
+  ignoredClasses: [],
+  ignoredProjects: []
+};
+
+function loadSettings() {
+  const raw = localStorage.getItem("klassresanSettings");
+  if (raw) {
+    try {
+      settings = JSON.parse(raw);
+    } catch (e) {
+      console.error("Failed to parse settings", e);
+    }
+  }
+  document.getElementById("serverUrl").value = settings.serverUrl || "";
+  document.getElementById("ignoredClasses").value = (settings.ignoredClasses || []).join(", ");
+  document.getElementById("ignoredProjects").value = (settings.ignoredProjects || []).join(", ");
+}
+
+function saveSettings() {
+  settings.serverUrl = document.getElementById("serverUrl").value.trim();
+  settings.ignoredClasses = document.getElementById("ignoredClasses").value.split(",").map(s => s.trim()).filter(Boolean);
+  settings.ignoredProjects = document.getElementById("ignoredProjects").value.split(",").map(s => s.trim()).filter(Boolean);
+  localStorage.setItem("klassresanSettings", JSON.stringify(settings));
+  alert("Settings saved. Reload to reconnect.");
+}
+
+function toggleSettings() {
+  const el = document.getElementById("settings");
+  el.style.display = el.style.display === "none" ? "block" : "none";
+}
 
 function connect() {
   console.log('connect')
-  ws = new WebSocket(`ws://${location.host}`);
+  const url = settings.serverUrl ? settings.serverUrl : "localhost:8091";
+  ws = new WebSocket(`ws://${url}`);
+  // ws = new WebSocket(`ws://${location.host}`);
   ws.onopen = () => setStatus(true);
   ws.onclose = () => {
     setStatus(false);
@@ -46,6 +117,7 @@ function connect() {
   ws.onmessage = (event) => {
     try {
       const trace = JSON.parse(event.data);
+      console.log('trace', trace)
       handleMessage(trace);
     } catch (err) {
       console.error("Invalid message", err);
@@ -53,8 +125,12 @@ function connect() {
   };
 }
 
+function getClusterId(frame) {
+  return `${frame.pkg}:${frame.clazz}`;
+}
+
 function getKey(frame) {
-  return `${frame.fileName}:${frame.method}`;
+  return `${frame.pkg}.${frame.clazz}:${frame.method}`;
 }
 
 function getEdgeKey(frame0, frame1) {
@@ -65,32 +141,45 @@ function handleMessage(trace) {
 
   if (!Array.isArray(trace) || trace.length === 0) return;
 
-  // can filter some unwanted files here
-  const validTrace = trace.filter( node =>
-       node.file !== 'TransactionalMethodInterceptor.kt'
+  // ignored projects check
+  for (const frame of trace) {
+    if (settings.ignoredProjects.some(pkg => frame.pkg && frame.pkg.startsWith(pkg))) {
+      return; // ignore whole trace
+    }
+  }
+
+  // filter unwanted frames
+  const validTrace = trace.filter(node =>
+       !settings.ignoredClasses.includes(node.clazz)
     && node.method !== 'unknown_method'
     && node.line !== -1
   )
 
   if (validTrace.length === 0) return;
 
-  activeNode = getKey(validTrace[0]); // top frame
+  const topFrame = validTrace[0]
+  switch (topFrame.source) {
+    case "debugger": activeDebuggerNode = getKey(topFrame); break;
+    case "hierarchy": activeHierarchyNode = getKey(topFrame); break;
+    case "editor": activeEditorNode = getKey(topFrame); break;
+  }
 
   for (let i = 0; i < validTrace.length; i++) {
     const frame = validTrace[i];
-    const id = `${frame.fileName}:${frame.method}`;
+    const id = getClusterId(frame)
+    const key = getKey(frame)
 
     if (i > 0) { // have previous node, link it
       const edgeKey = getEdgeKey(validTrace[i-1], validTrace[i])
       edges.add(edgeKey);
     }
 
-    if (!nodes.has(id)) {
-      nodes.set(id, frame);
+    if (!nodes.has(key)) {
+      nodes.set(key, frame);
     }
 
-    if (!clusters.has(frame.fileName)) clusters.set(frame.fileName, []);
-    if (!clusters.get(frame.fileName).includes(id)) clusters.get(frame.fileName).push(id);
+    if (!clusters.has(id)) clusters.set(id, []);
+    if (!clusters.get(id).includes(key)) clusters.get(id).push(key);
   }
 
   renderGraph();
@@ -109,50 +198,66 @@ function clear() {
   nodes = new Map();
   edges = new Set();
   clusters = new Map();
-  activeNode = null;
+  activeDebuggerNode = null;
+  activeHierarchyNode = null;
+  activeEditorNode = null;
   renderGraph()
 }
 
 function renderGraph() {
   let dot = 'digraph G {\n  rankdir=LR;\n  node [shape=ellipse];\n\n'; // rankdir left to right
-  // let dot = 'digraph G {\n node [shape=ellipse];\n\n'; // rankdir top down
   const resourceClusters = []
 
-  // resource clusters, gray background
-  for (const [file, methods] of clusters.entries()) {
-    if (!file.includes('Resource')) {
-      continue
+  // force resources to stay on the edge with invisible __caller node
+  dot+='__caller [style=invis]\n'
+  for (const [key, frame] of nodes.entries()) {
+    const isResource = frame.clazz.includes('Resource')
+    if (isResource) {
+      dot+= `__caller -> "${key}" [color=\"#cccccc\" penwidth=0]\n`
     }
-    
-    const clusterName = `cluster_${sanitize(file)}`
-    dot += `      subgraph ${clusterName} {\n label="${file}";\n`;
-    dot+="style=filled;"
-    dot+="fillcolor=\"#dddddd\";"
-    for (const id of methods) {
-      const frame = nodes.get(id);
-      const shape = file.includes("Resource") ? "shape=box" : "";
-      const active = id === activeNode ? "color=blue penwidth=2 fillcolor=\"#00ccff\", style=filled" : "";
-      dot += `      "${id}" [label="${frame.method}" ${shape} ${active}];\n`;
-    }
-    dot += '    }\n\n';
   }
 
-  // normal clusters
-  for (const [file, methods] of clusters.entries()) {
-    if (file.includes('Resource')) {
-      continue
+  for (const [clusterId, methods] of clusters.entries()) {
+    let activeClusterEditor = false
+    let activeClusterHierarchy = false
+    for (const key of methods) {
+      activeClusterEditor = activeClusterEditor || key === activeEditorNode
+      activeClusterHierarchy = activeClusterHierarchy || key === activeHierarchyNode
     }
-    const clusterName = `cluster_${sanitize(file)}`
-    dot += `  subgraph ${clusterName} {\n    label="${file}";\n`;
+
+    const clusterIdTag = `cluster_${sanitize(clusterId)}`
+    const clusterName = clusterId.split(':')[1]
+    dot += `  subgraph ${clusterIdTag} {\n    label="${clusterName}";\n`;
+
+    if (activeClusterEditor) {
+      dot+="style=filled;"
+      dot+="color=\"#ff0000\";"
+      dot+="fillcolor=\"#ffdddd\";"
+      dot+="penwidth=2;"
+    } else if (activeClusterHierarchy) {
+      dot+="color=\"#00aa00\";"
+      dot+="style=filled;"
+      dot+="fillcolor=\"#eeffee\";"
+      dot+="penwidth=2;"
+    }
     
     dot+='    { rank=same\n'
     dot+= '      edge [constraint=false];\n'
     
-    for (const id of methods) {
-      const frame = nodes.get(id);
-      const shape = file.includes("Resource") ? "shape=box, fillcolor=\"#cccccc\", style=filled" : "";
-      const active = id === activeNode ? "color=blue penwidth=2 fillcolor=\"#00ccff\", style=filled" : "";
-      dot += `      "${id}" [label="${frame.method}" ${shape} ${active}];\n`;
+    for (const key of methods) {
+      const frame = nodes.get(key);
+      const activeDebugger = key === activeDebuggerNode
+      const activeEditor = key === activeEditorNode
+
+      const isResource = frame.clazz.includes('Resource')
+
+      const color = activeDebugger ? "color=blue" : activeEditor ? "color=red" : ""
+      const fillcolor = activeDebugger ? "fillcolor=\"#00ccff\"" : activeEditor ? "fillcolor=\"#ffcccc\"" : isResource ? "fillcolor=\"#cccccc\"" : ""
+      const penwidth = activeEditor && activeDebugger ? "penwidth=4" : activeEditor || activeDebugger ? "penwidth=2" : ""
+      const style = activeDebugger || activeEditor || isResource ? "style=filled" : ""
+      const shape = isResource ? "shape=box" : ""
+
+      dot += `      "${key}" [label="${frame.method}" ${color} ${penwidth} ${fillcolor} ${style} ${shape}];\n`;
     }
     dot += '    }\n'; // same
     dot += '  }\n\n';
@@ -167,7 +272,7 @@ function renderGraph() {
   dot += '}';
 
   // show the dot output
-  // document.getElementById('dot').innerHTML = dot
+  document.getElementById('dot').innerHTML = dot
 
   try {
     const viz = new Viz();
@@ -181,8 +286,11 @@ function renderGraph() {
   }
 }
 
+loadSettings();
 connect();
 </script>
+<!-- sample data -->
+<!-- <script src="sample.js"></script> -->
 
 </body>
 </html>

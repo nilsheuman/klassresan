@@ -1,4 +1,4 @@
-package se.snackesurf.intellij.klassresan;
+package se.snackesurf.intellij.klassresan.extractors;
 
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.editor.Document;
@@ -23,10 +23,10 @@ class MethodNameExtractor(private val project: Project) {
             val element = psiFile.findElementAt(offset) ?: return@compute UNKNOWN
 
             val method = findContainingMethod(element)
-            method?.let { extractMethodName(it) } ?: UNKNOWN
+            method?.let { extractMethodNameFromElement(it) } ?: UNKNOWN
         }
 
-    private fun extractMethodName(methodElement: PsiElement): String =
+    private fun extractMethodNameFromElement(methodElement: PsiElement): String =
         try {
             methodElement.text?.takeIf { it.isNotEmpty() }?.let { extractMethodNameFromText(it) } ?: UNKNOWN
         } catch (e: Exception) {
