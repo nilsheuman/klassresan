@@ -17,6 +17,9 @@ repositories {
 dependencies {
   intellijPlatform {
     intellijIdeaCommunity("2024.3.6")
+    // for PsiJavaFile
+    bundledPlugin("com.intellij.java")
+//    bundledPlugin("org.jetbrains.kotlin")
   }
 
   implementation("org.java-websocket:Java-WebSocket:1.5.6")
