@@ -5,55 +5,78 @@ import com.intellij.openapi.project.ProjectManager
 import se.snackesurf.intellij.klassresan.hooks.ServerProjectActivity
 import java.awt.Component
 import java.awt.Dimension
-import java.awt.event.ActionEvent
 import javax.swing.*
 
 internal class KlassresanConfigurable : Configurable {
     private val mainPanel = JPanel()
     private val serverPanel = JPanel()
+    private val clientPanel = JPanel()
     private val logPanel = JPanel()
-    private val portField: JTextField = object : JTextField("8093", 6) {
+    private val baseUrlField: JTextField = object : JTextField("<set url>", 6) {
         init {
-            preferredSize = Dimension(100, 30)
-            maximumSize = Dimension(100, 30)
+            preferredSize = Dimension(300, LABEL_HEIGHT)
+            maximumSize = Dimension(300, LABEL_HEIGHT)
         }
     }
-    private val startButton = JButton("Start Server")
-    private val stopButton = JButton("Stop Server")
+    private val portField: JTextField = object : JTextField("8093", 6) {
+        init {
+            preferredSize = Dimension(100, LABEL_HEIGHT)
+            maximumSize = Dimension(100, LABEL_HEIGHT)
+        }
+    }
     private val logArea: JTextArea = object : JTextArea(10, 50) {
         init {
             isEditable = false
         }
     }
+    private val clientEnabledCheckBox = JCheckBox("Enable Client")
+    private val serverEnabledCheckBox = JCheckBox("Enable Server")
 
     init {
+        val settings = KlassresanSettings.getInstance()
+
         mainPanel.layout = BoxLayout(mainPanel, BoxLayout.Y_AXIS)
+
+        clientPanel.layout = BoxLayout(clientPanel, BoxLayout.X_AXIS)
+        clientPanel.border = BorderFactory.createTitledBorder("Client")
+        clientPanel.add(clientEnabledCheckBox)
+        
+        // Add fixed width label to maintain spacing
+        val clientLabel = JLabel("Base URL:")
+        clientLabel.preferredSize = Dimension(100, LABEL_HEIGHT)
+        clientLabel.maximumSize = Dimension(100, LABEL_HEIGHT)
+        clientEnabledCheckBox.preferredSize = Dimension(150, LABEL_HEIGHT)
+        clientEnabledCheckBox.maximumSize = Dimension(150, LABEL_HEIGHT)
+        serverEnabledCheckBox.preferredSize = Dimension(150, LABEL_HEIGHT)
+        serverEnabledCheckBox.maximumSize = Dimension(150, LABEL_HEIGHT)
+        clientPanel.add(clientLabel)
+        
+        clientPanel.add(baseUrlField)
+        clientPanel.alignmentX = Component.LEFT_ALIGNMENT
+
         serverPanel.layout = BoxLayout(serverPanel, BoxLayout.X_AXIS)
         serverPanel.border = BorderFactory.createTitledBorder("Server")
-        serverPanel.add(startButton)
-        serverPanel.add(stopButton)
-        serverPanel.add(JLabel("Port:"))
+        serverPanel.add(serverEnabledCheckBox)
+        
+        // Add fixed width label to maintain spacing
+        val portLabel = JLabel("Port:")
+        portLabel.preferredSize = Dimension(100, LABEL_HEIGHT)
+        portLabel.maximumSize = Dimension(100, LABEL_HEIGHT)
+        serverPanel.add(portLabel)
+        
         serverPanel.add(portField)
-
-        // Make server panel take full width
         serverPanel.alignmentX = Component.LEFT_ALIGNMENT
 
         logPanel.layout = BoxLayout(logPanel, BoxLayout.Y_AXIS)
         logPanel.border = BorderFactory.createTitledBorder("Log")
         logPanel.add(JScrollPane(logArea))
-
-        // Make log panel take full width
         logPanel.alignmentX = Component.LEFT_ALIGNMENT
 
+        mainPanel.add(clientPanel)
+        mainPanel.add(Box.createVerticalStrut(10))
         mainPanel.add(serverPanel)
         mainPanel.add(Box.createVerticalStrut(10))
         mainPanel.add(logPanel)
-
-        // Add a horizontal glue to make server panel stretch
-        serverPanel.add(Box.createHorizontalGlue())
-
-        // Add a horizontal glue to make log panel stretch
-        logPanel.add(Box.createHorizontalGlue())
 
         // Set preferred size for panels to ensure they stretch
         serverPanel.preferredSize = Dimension(0, serverPanel.preferredSize.height)
@@ -63,27 +86,35 @@ internal class KlassresanConfigurable : Configurable {
         serverPanel.maximumSize = Dimension(Int.MAX_VALUE, serverPanel.preferredSize.height)
         logPanel.maximumSize = Dimension(Int.MAX_VALUE, logPanel.preferredSize.height)
 
-        startButton.addActionListener {
-            try {
-                val port = portField.text.toInt()
-                val project = ProjectManager.getInstance().openProjects[0]
-                val server =
-                    project.getUserData(ServerProjectActivity.KEY)
-                server!!.setPort(port)
-                server.start()
-                logArea.append("Server started on port $port\n")
-            } catch (ex: Exception) {
-                logArea.append("Could not start server\n")
+        // Add listener to server enable checkbox to start/stop server
+        serverEnabledCheckBox.addActionListener {
+            val project = ProjectManager.getInstance().openProjects[0]
+            val server = project.getUserData(ServerProjectActivity.KEY)
+            settings.serverEnabled = serverEnabledCheckBox.isSelected
+            
+            if (serverEnabledCheckBox.isSelected) {
+                if (server?.isRunning() == true) {
+                    server.stop()
+                }
+
+                try {
+                    val port = portField.text.toInt()
+                    server!!.setPort(port)
+                    val status = server.start()
+                    logArea.append(status + "\n")
+                } catch (ex: Exception) {
+                    logArea.append("Could not start server\n")
+                }
+            } else {
+                server!!.stop()
+                logArea.append("Server stopped\n")
             }
         }
 
-        stopButton.addActionListener {
-            val project = ProjectManager.getInstance().openProjects[0]
-            val server =
-                project.getUserData(ServerProjectActivity.KEY)
-            server!!.stop()
-            logArea.append("Server stopped\n")
-        }
+        baseUrlField.text = settings.httpBaseUrl
+        clientEnabledCheckBox.isSelected = settings.clientEnabled
+        serverEnabledCheckBox.isSelected = settings.serverEnabled
+        portField.text = settings.serverPort.toString()
 
         val project1 = ProjectManager.getInstance().openProjects[0]
         val server1 = project1.getUserData(ServerProjectActivity.KEY)
@@ -101,9 +132,22 @@ internal class KlassresanConfigurable : Configurable {
     }
 
     override fun isModified(): Boolean {
-        return true
+        val settings = KlassresanSettings.getInstance()
+        return baseUrlField.text != settings.httpBaseUrl ||
+                clientEnabledCheckBox.isSelected != settings.clientEnabled ||
+                serverEnabledCheckBox.isSelected != settings.serverEnabled ||
+                portField.text != settings.serverPort.toString()
     }
 
     override fun apply() {
+        val settings = KlassresanSettings.getInstance()
+        settings.httpBaseUrl = baseUrlField.text
+        settings.clientEnabled = clientEnabledCheckBox.isSelected
+        settings.serverEnabled = serverEnabledCheckBox.isSelected
+        settings.serverPort = portField.text.toInt()
+    }
+    
+    companion object {
+        private const val LABEL_HEIGHT = 30
     }
 }

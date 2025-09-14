@@ -13,18 +13,25 @@ import com.intellij.util.concurrency.AppExecutorUtil
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpHandler
 import com.sun.net.httpserver.HttpServer
+import se.snackesurf.intellij.klassresan.settings.KlassresanSettings
 import java.net.InetSocketAddress
 
 class KlassresanServer(private val project: Project, private var port: Int = 8093) {
     private var server: HttpServer? = null
+    private val settings = KlassresanSettings.getInstance()
 
-    fun start() {
-        if (server != null) return
+    fun start(): String {
+        if (server != null) return "Server != null"
+        if (!settings.serverEnabled) {
+            println("Server not enabled")
+            return "Server not enabled"
+        }
         server = HttpServer.create(InetSocketAddress(port), 0)
         server?.createContext("/open", OpenFileHandler(project))
         server?.executor = AppExecutorUtil.getAppExecutorService()
         server?.start()
-        println("Klassresan server started on port $port")
+        println("Server started on port $port")
+        return "Server started on port $port"
     }
 
     fun stop() {
@@ -93,6 +100,7 @@ private class OpenFileHandler(private val project: Project) : HttpHandler {
 
     private fun sendResponse(exchange: HttpExchange, message: String) {
         val bytes = message.toByteArray()
+        exchange.responseHeaders.add("Access-Control-Allow-Origin", "*")
         exchange.sendResponseHeaders(200, bytes.size.toLong())
         exchange.responseBody.use { it.write(bytes) }
     }

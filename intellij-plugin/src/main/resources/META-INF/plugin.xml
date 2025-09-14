@@ -46,7 +46,7 @@
     <!--  server  -->
     <postStartupActivity implementation="se.snackesurf.intellij.klassresan.hooks.ServerProjectActivity"/>
     <applicationConfigurable
-            displayName="Klassresan Server"
+            displayName="Klassresan"
             id="se.snackesurf.intellij.klassresan.settings"
             implementation="se.snackesurf.intellij.klassresan.settings.KlassresanConfigurable"/>
   </extensions>
