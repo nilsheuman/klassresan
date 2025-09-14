@@ -9,9 +9,8 @@ additional_files=(
   "src/main/resources/META-INF/plugin.xml"
 )
 
-# Process all .h and .cpp files in src directory
-for file in  src/main/java/se/snackesurf/intellij/klassresan/*.kt; do
-  [ -f "$file" ] || continue
+# Process all .kt files in src directory (recursively)
+find src/main/java/se/snackesurf/intellij/klassresan -type f -name "*.kt" | while read -r file; do
   filename=$(basename "$file")
   printf "\n\n// File: %s\n\n" "$filename"
   cat "$file"
