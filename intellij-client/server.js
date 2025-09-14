@@ -5,7 +5,6 @@ const WebSocket = require("ws");
 
 const server = http.createServer((req, res) => {
   if (req.method === "GET" && (req.url === "/" || req.url === "/index.html")) {
-    // Serve index.html
     const filePath = path.join(__dirname, "index.html");
     fs.readFile(filePath, (err, data) => {
       if (err) {
@@ -17,7 +16,6 @@ const server = http.createServer((req, res) => {
       }
     });
   } else if (req.method === "GET" && (req.url === "/sample.js")) {
-    // Serve index.html
     const filePath = path.join(__dirname, "sample.js");
     fs.readFile(filePath, (err, data) => {
       if (err) {

@@ -1,98 +1,156 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <title>Klassresan</title>
-    <script src="https://unpkg.com/viz.js@2.1.2/viz.js"></script>
-    <script src="https://unpkg.com/viz.js@2.1.2/full.render.js"></script>
-    <style>
-        #status {
-          width: 12px;
-          height: 12px;
-          border-radius: 50%;
-          display: inline-block;
-          margin-left: 5px;
-        }
-        #status.connected { background: #0c0; }
-        #status.disconnected { background: red; }
+  <meta charset="UTF-8">
+  <title>Klassresan</title>
+  <script src="https://unpkg.com/viz.js@2.1.2/viz.js"></script>
+  <script src="https://unpkg.com/viz.js@2.1.2/full.render.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: #fff;
+    }
+    #actionBar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #333;
+      color: #fff;
+      padding: 10px 15px;
+    }
+    #title {
+      font-size: 1.2em;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+    }
+    #status {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-left: 8px;
+    }
+    #status.connected { background: #0c0; }
+    #status.disconnected { background: red; }
 
-        #graph svg {
-            transform: scale(0.75);
-            transform-origin: top left;
-        }
+    #buttons button {
+      margin-left: 8px;
+      padding: 6px 10px;
+      border: none;
+      border-radius: 4px;
+      background: #555;
+      color: #fff;
+      cursor: pointer;
+    }
+    #buttons button:hover {
+      background: #777;
+    }
 
-        #dot {
-          /* dot code is written but hidden */
-          display: none;
-        }
+    #settings {
+      display: none;
+      padding: 15px;
+      background: #fff;
+      border-bottom: 1px solid #ccc;
+    }
+    #settings label {
+      display: block;
+      margin: 10px 0 5px;
+    }
+    #settings input, #settings textarea {
+      width: 100%;
+      padding: 5px;
+      box-sizing: border-box;
+    }
+    #settings textarea {
+      height: 50px;
+    }
 
-        #settings {
-          display: none;
-          margin: 10px 0;
-          padding: 10px;
-          border: 1px solid #ccc;
-          background: #f9f9f9;
-        }
-        #settings textarea {
-          width: 100%;
-          height: 50px;
-        }
-    </style>
+    #graph {
+      padding: 15px;
+      background: #fff;
+      min-height: 80vh;
+    }
+    #graph svg {
+      transform: scale(0.75);
+      transform-origin: top left;
+    }
+
+    #dot {
+      display: none;
+    }
+  </style>
 </head>
 <body>
-<h3>Klassresan <span id="status" class="disconnected"></span></h3>
-<button onclick="toggleSettings()">⚙️ Settings</button>
+
+<div id="actionBar">
+  <div id="title">
+    Klassresan <span id="status" class="disconnected"></span>
+  </div>
+  <div id="buttons">
+    <button onclick="toggleSettings()">⚙ Settings</button>
+    <button onclick="clearGraph()">Clear</button>
+  </div>
+</div>
+
 <div id="settings">
-  <label>Server URL (empty = localhost):<br>
+  <label>Websocket URL (empty = ws://localhost:8091):
     <input type="text" id="serverUrl">
   </label>
-  <br><br>
-  <label>Ignored Classes (comma separated):<br>
+
+  <label>Intellij Server URL (empty = http://localhost:8093):
+    <input type="text" id="intellijServerUrl">
+  </label>
+
+  <label>Ignored Classes (comma separated):
     <textarea id="ignoredClasses"></textarea>
   </label>
-  <br><br>
-  <label>Ignored Projects/Packages (comma separated):<br>
+
+  <label>Ignored Projects/Packages (comma separated):
     <textarea id="ignoredProjects"></textarea>
   </label>
-  <br><br>
+
   <button onclick="saveSettings()">Save Settings</button>
 </div>
 
 <div id="graph"></div>
 <pre id="dot"></pre>
-<a href="javascript:clear();">clear</a>
 
 <script>
 let ws;
-let nodes = new Map();        // fileName:method
-let edges = new Set();        // from->to
-let clusters = new Map();     // file -> [method]
+let nodes = new Map();
+let edges = new Set();
+let clusters = new Map();
 let activeDebuggerNode = null;
 let activeEditorNode = null;
 let activeHierarchyNode = null;
 
 let settings = {
   serverUrl: "",
+  intellijServerUrl: "",
   ignoredClasses: [],
   ignoredProjects: []
 };
 
+const defaultWebsocketUrl = "ws://localhost:8091"
+const defaultIntellijUrl = "http://localhost:8093"
+
 function loadSettings() {
   const raw = localStorage.getItem("klassresanSettings");
   if (raw) {
-    try {
-      settings = JSON.parse(raw);
-    } catch (e) {
-      console.error("Failed to parse settings", e);
-    }
+    try { settings = JSON.parse(raw); } 
+    catch (e) { console.error("Failed to parse settings", e); }
   }
-  document.getElementById("serverUrl").value = settings.serverUrl || "";
+  document.getElementById("serverUrl").value = settings.websocketUrl || "";
+  document.getElementById("intellijServerUrl").value = settings.intellijServerUrl || "";
   document.getElementById("ignoredClasses").value = (settings.ignoredClasses || []).join(", ");
   document.getElementById("ignoredProjects").value = (settings.ignoredProjects || []).join(", ");
 }
 
 function saveSettings() {
-  settings.serverUrl = document.getElementById("serverUrl").value.trim();
+  settings.websocketUrl = document.getElementById("serverUrl").value.trim();
+  settings.intellijServerUrl = document.getElementById("intellijServerUrl").value.trim();
   settings.ignoredClasses = document.getElementById("ignoredClasses").value.split(",").map(s => s.trim()).filter(Boolean);
   settings.ignoredProjects = document.getElementById("ignoredProjects").value.split(",").map(s => s.trim()).filter(Boolean);
   localStorage.setItem("klassresanSettings", JSON.stringify(settings));
@@ -105,59 +163,47 @@ function toggleSettings() {
 }
 
 function connect() {
-  console.log('connect')
-  const url = settings.serverUrl ? settings.serverUrl : "localhost:8091";
-  ws = new WebSocket(`ws://${url}`);
-  // ws = new WebSocket(`ws://${location.host}`);
+  const url = settings.websocketUrl ? settings.websocketUrl : defaultWebsocketUrl;
+  ws = new WebSocket(`${url}`);
   ws.onopen = () => setStatus(true);
-  ws.onclose = () => {
-    setStatus(false);
-    setTimeout(connect, 2000);
-  };
+  ws.onclose = () => { setStatus(false); setTimeout(connect, 2000); };
   ws.onmessage = (event) => {
-    try {
-      const trace = JSON.parse(event.data);
-      console.log('trace', trace)
-      handleMessage(trace);
-    } catch (err) {
-      console.error("Invalid message", err);
-    }
+    try { handleMessage(JSON.parse(event.data)); }
+    catch (err) { console.error("Invalid message", err); }
   };
 }
 
-function getClusterId(frame) {
-  return `${frame.pkg}:${frame.clazz}`;
+function setStatus(ok) {
+  document.getElementById("status").className = ok ? "connected" : "disconnected";
 }
 
-function getKey(frame) {
-  return `${frame.pkg}.${frame.clazz}:${frame.method}`;
+function clearGraph() {
+  nodes = new Map();
+  edges = new Set();
+  clusters = new Map();
+  activeDebuggerNode = null;
+  activeHierarchyNode = null;
+  activeEditorNode = null;
+  renderGraph();
 }
 
-function getEdgeKey(frame0, frame1) {
-  return `${getKey(frame1)}->${getKey(frame0)}`;
-}
+function getClusterId(frame) { return `${frame.pkg}:${frame.clazz}`; }
+function getKey(frame) { return `${frame.pkg}.${frame.clazz}:${frame.method}`; }
+function getEdgeKey(frame0, frame1) { return `${getKey(frame1)}->${getKey(frame0)}`; }
 
 function handleMessage(trace) {
-
   if (!Array.isArray(trace) || trace.length === 0) return;
-
-  // ignored projects check
   for (const frame of trace) {
-    if (settings.ignoredProjects.some(pkg => frame.pkg && frame.pkg.startsWith(pkg))) {
-      return; // ignore whole trace
-    }
+    if (settings.ignoredProjects.some(pkg => frame.pkg && frame.pkg.startsWith(pkg))) return;
   }
-
-  // filter unwanted frames
   const validTrace = trace.filter(node =>
-       !settings.ignoredClasses.includes(node.clazz)
-    && node.method !== 'unknown_method'
-    && node.line !== -1
-  )
-
+    !settings.ignoredClasses.includes(node.clazz) &&
+    node.method !== 'unknown_method' &&
+    node.line !== -1
+  );
   if (validTrace.length === 0) return;
 
-  const topFrame = validTrace[0]
+  const topFrame = validTrace[0];
   switch (topFrame.source) {
     case "debugger": activeDebuggerNode = getKey(topFrame); break;
     case "hierarchy": activeHierarchyNode = getKey(topFrame); break;
@@ -166,101 +212,87 @@ function handleMessage(trace) {
 
   for (let i = 0; i < validTrace.length; i++) {
     const frame = validTrace[i];
-    const id = getClusterId(frame)
-    const key = getKey(frame)
-
-    if (i > 0) { // have previous node, link it
-      const edgeKey = getEdgeKey(validTrace[i-1], validTrace[i])
-      edges.add(edgeKey);
-    }
-
-    if (!nodes.has(key)) {
-      nodes.set(key, frame);
-    }
-
+    const id = getClusterId(frame);
+    const key = getKey(frame);
+    if (i > 0) edges.add(getEdgeKey(validTrace[i-1], validTrace[i]));
+    if (!nodes.has(key)) nodes.set(key, frame);
     if (!clusters.has(id)) clusters.set(id, []);
     if (!clusters.get(id).includes(key)) clusters.get(id).push(key);
   }
-
   renderGraph();
 }
 
-function setStatus(ok) {
-  const el = document.getElementById("status");
-  el.className = ok ? "connected" : "disconnected";
-}
+function sanitize(str) { return str.replace(/[^a-zA-Z0-9_]/g, "_"); }
 
-function sanitize(str) {
-  return str.replace(/[^a-zA-Z0-9_]/g, "_");
-}
 
-function clear() {
-  nodes = new Map();
-  edges = new Set();
-  clusters = new Map();
-  activeDebuggerNode = null;
-  activeHierarchyNode = null;
-  activeEditorNode = null;
-  renderGraph()
+
+function openEditor(nodeKey) {
+  const frame = nodes.get(nodeKey);
+  if (!frame) return;
+
+  const baseUrl = settings.intellijServerUrl || defaultIntellijUrl
+  
+  let url;
+  if (frame.pkg) {
+    url = `${baseUrl}/open?fq=${frame.pkg}.${frame.clazz}&line=${frame.line}`;
+  } else {
+    url = `${baseUrl}/open?path=${frame.clazz}&line=${frame.line}`;
+  }
+  
+  const xhr = new XMLHttpRequest();
+  xhr.open('GET', url, true);
+  xhr.send();
 }
 
 function renderGraph() {
-  let dot = 'digraph G {\n  rankdir=LR;\n  node [shape=ellipse];\n\n'; // rankdir left to right
-  const resourceClusters = []
+  let dot = 'digraph G {\n  rankdir=LR;\n  node [shape=ellipse];\n\n';
+  dot+='__caller [style=invis]\n';
 
-  // force resources to stay on the edge with invisible __caller node
-  dot+='__caller [style=invis]\n'
+  // resources forced out to edges with invisible caller, not really working
   for (const [key, frame] of nodes.entries()) {
-    const isResource = frame.clazz.includes('Resource')
-    if (isResource) {
-      dot+= `__caller -> "${key}" [color=\"#cccccc\" penwidth=0]\n`
+    if (frame.clazz.includes('Resource')) {
+      dot+= `__caller -> "${key}" [color=\"#cccccc\" penwidth=0]\n`;
     }
   }
 
+  // clusters
   for (const [clusterId, methods] of clusters.entries()) {
-    let activeClusterEditor = false
-    let activeClusterHierarchy = false
+    let activeClusterEditor = false;
+    let activeClusterHierarchy = false;
     for (const key of methods) {
-      activeClusterEditor = activeClusterEditor || key === activeEditorNode
-      activeClusterHierarchy = activeClusterHierarchy || key === activeHierarchyNode
+      activeClusterEditor = activeClusterEditor || key === activeEditorNode;
+      activeClusterHierarchy = activeClusterHierarchy || key === activeHierarchyNode;
     }
 
-    const clusterIdTag = `cluster_${sanitize(clusterId)}`
-    const clusterName = clusterId.split(':')[1]
+    const clusterIdTag = `cluster_${sanitize(clusterId)}`;
+    const clusterName = clusterId.split(':')[1];
     dot += `  subgraph ${clusterIdTag} {\n    label="${clusterName}";\n`;
 
     if (activeClusterEditor) {
-      dot+="style=filled;"
-      dot+="color=\"#ff0000\";"
-      dot+="fillcolor=\"#ffdddd\";"
-      dot+="penwidth=2;"
+      dot+="style=filled; color=\"#ff0000\"; fillcolor=\"#ffdddd\"; penwidth=2;\n";
     } else if (activeClusterHierarchy) {
-      dot+="color=\"#00aa00\";"
-      dot+="style=filled;"
-      dot+="fillcolor=\"#eeffee\";"
-      dot+="penwidth=2;"
+      dot+="style=filled; color=\"#00aa00\"; fillcolor=\"#eeffee\"; penwidth=2;\n";
     }
     
-    dot+='    { rank=same\n'
-    dot+= '      edge [constraint=false];\n'
-    
+    dot+='    { rank=same\n      edge [constraint=false];\n';
     for (const key of methods) {
       const frame = nodes.get(key);
-      const activeDebugger = key === activeDebuggerNode
-      const activeEditor = key === activeEditorNode
+      const activeDebugger = key === activeDebuggerNode;
+      const activeEditor = key === activeEditorNode;
+      const isResource = frame.clazz.includes('Resource');
 
-      const isResource = frame.clazz.includes('Resource')
-
-      const color = activeDebugger ? "color=blue" : activeEditor ? "color=red" : ""
-      const fillcolor = activeDebugger ? "fillcolor=\"#00ccff\"" : activeEditor ? "fillcolor=\"#ffcccc\"" : isResource ? "fillcolor=\"#cccccc\"" : ""
-      const penwidth = activeEditor && activeDebugger ? "penwidth=4" : activeEditor || activeDebugger ? "penwidth=2" : ""
-      const style = activeDebugger || activeEditor || isResource ? "style=filled" : ""
-      const shape = isResource ? "shape=box" : ""
+      const color = activeDebugger ? "color=blue" : activeEditor ? "color=red" : "";
+      const fillcolor = activeDebugger ? "fillcolor=\"#00ccff\"" :
+                        activeEditor ? "fillcolor=\"#ffcccc\"" :
+                        isResource ? "fillcolor=\"#cccccc\"" : "";
+      const penwidth = activeEditor && activeDebugger ? "penwidth=4" :
+                       activeEditor || activeDebugger ? "penwidth=2" : "";
+      const style = (activeDebugger || activeEditor || isResource) ? "style=filled" : "";
+      const shape = isResource ? "shape=box" : "";
 
       dot += `      "${key}" [label="${frame.method}" ${color} ${penwidth} ${fillcolor} ${style} ${shape}];\n`;
     }
-    dot += '    }\n'; // same
-    dot += '  }\n\n';
+    dot += '    }\n  }\n\n';
   }
 
   // edges
@@ -268,28 +300,35 @@ function renderGraph() {
     const [from, to] = edge.split("->");
     dot += `  "${from}" -> "${to}";\n`;
   }
-
   dot += '}';
 
-  // show the dot output
-  document.getElementById('dot').innerHTML = dot
-
+  document.getElementById('dot').innerHTML = dot;
   try {
     const viz = new Viz();
     viz.renderSVGElement(dot).then(svg => {
       const graphDiv = document.getElementById("graph");
       graphDiv.innerHTML = "";
       graphDiv.appendChild(svg);
-    }).catch(err => console.error("Viz.js render error", err));
-  } catch (e) {
-    console.error("DOT build failed", e);
-  }
+
+      const nodes = svg.querySelectorAll('g.node');
+      nodes.forEach(node => {
+        // console.log('node', node)
+        const title = node.querySelector('title')?.textContent;
+        if (title) {
+          console.log('title', title)
+          node.style.cursor = 'pointer';
+          node.addEventListener('click', () => openEditor(title));
+        }
+      });
+    });
+  } catch (e) { console.error("DOT build failed", e); }
 }
 
 loadSettings();
 connect();
 </script>
-<!-- sample data -->
+
+<!-- include sample data for offline testing -->
 <!-- <script src="sample.js"></script> -->
 
 </body>
