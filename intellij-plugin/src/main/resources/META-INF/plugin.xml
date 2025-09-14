@@ -8,6 +8,8 @@
 
   <!-- Indicate this plugin can be loaded in all IntelliJ Platform-based products. -->
   <depends>com.intellij.modules.platform</depends>
+  <depends>com.intellij.java</depends>
+<!--  <depends>com.intellij.kotlin</depends>-->
 
   <projectListeners>
     <!--  listen to debugger starts  -->
@@ -38,7 +40,15 @@
   <vendor url="https://github.com/nilsheuman/klassresan">Klassresan</vendor>
 
   <extensions defaultExtensionNs="com.intellij">
+    <!--  hierarchy ui hook  -->
     <postStartupActivity implementation="se.snackesurf.intellij.klassresan.hooks.HierarchyProjectActivity"/>
+
+    <!--  server  -->
+    <postStartupActivity implementation="se.snackesurf.intellij.klassresan.hooks.ServerProjectActivity"/>
+    <applicationConfigurable
+            displayName="Klassresan Server"
+            id="se.snackesurf.intellij.klassresan.settings"
+            implementation="se.snackesurf.intellij.klassresan.settings.KlassresanConfigurable"/>
   </extensions>
 
 
