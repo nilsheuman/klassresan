@@ -1,5 +1,7 @@
 package se.snackesurf.intellij.klassresan.hooks;
 
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.NlsContexts;
 import com.intellij.xdebugger.*;
@@ -14,18 +16,17 @@ class DebugProcessListener(project: Project) : XDebuggerManagerListener {
   private val methodNameExtractor = MethodNameExtractor(project)
   private val classNameExtractor = ClassNameExtractor(project)
   private val packageNameExtractor = PackageNameExtractor(project)
-  private val publisher: Publisher = HttpPublisher()
+  private val publisher: Publisher = HttpPublisher(project)
 
   override fun processStarted(debugProcess: XDebugProcess) {
-    println("processStarted")
+//    println("processStarted")
 
     cache.clear()
 
     val debugSession = debugProcess.session
     debugSession.addSessionListener(object : XDebugSessionListener {
       override fun sessionPaused() {
-        println("sessionPaused")
-        handleSession(debugSession)
+          handleSession(debugSession)
       }
     })
   }
@@ -60,7 +61,7 @@ class DebugProcessListener(project: Project) : XDebuggerManagerListener {
 
   private fun getOrCreateFrameInfo(pos: XSourcePosition, fileName: String, filePath: String, line: Int, offset: Int): FrameInfo? {
     val key = "$fileName:$line"
-    return cache[key] ?: run {
+    return cache[key] ?: ReadAction.compute<FrameInfo, RuntimeException> {
       val method = methodNameExtractor.extractMethodName(pos.file, line - 1)
       val clazz = classNameExtractor.extractClassName(pos.file, line - 1)
       val packageName = packageNameExtractor.extractPackageName(pos.file)

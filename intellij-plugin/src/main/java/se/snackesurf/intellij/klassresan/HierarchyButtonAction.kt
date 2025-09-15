@@ -12,15 +12,16 @@ import javax.swing.tree.TreeNode
 class HierarchyButtonAction : AnAction("Klassresan Export") {
 
     override fun actionPerformed(e: AnActionEvent) {
+        val project = e.project!!
         val component = e.getData(PlatformDataKeys.CONTEXT_COMPONENT) ?: return
         val tree = findHierarchyTree(component) ?: return
         val paths = collectPathsFromTree(tree.model.root as TreeNode)
 
         // send each tree separate to create the proper node-trees
-        val publisher = HttpPublisher()
+        val publisher = HttpPublisher(project)
         paths.forEach { path ->
             val frames = path.mapIndexed { _, node ->
-                println("node $node")
+
                 val (className, methodName, parameterList, packageName) = parseHierarchyLine(node.toString())
                 FrameInfo(
                     clazz = className,

@@ -18,26 +18,26 @@ import java.net.InetSocketAddress
 
 class KlassresanServer(private val project: Project, private var port: Int = 8093) {
     private var server: HttpServer? = null
-    private val settings = KlassresanSettings.getInstance()
+    private val settings = KlassresanSettings.getInstance(project)
 
     fun start(): String {
         if (server != null) return "Server != null"
         if (!settings.serverEnabled) {
-            println("Server not enabled")
+            println("Server not enabled [${project.name}]")
             return "Server not enabled"
         }
         server = HttpServer.create(InetSocketAddress(port), 0)
         server?.createContext("/open", OpenFileHandler(project))
         server?.executor = AppExecutorUtil.getAppExecutorService()
         server?.start()
-        println("Server started on port $port")
+        println("Klassresan Server started on port $port [${project.name}]")
         return "Server started on port $port"
     }
 
     fun stop() {
         server?.stop(0)
         server = null
-        println("Klassresan server stopped")
+        println("Klassresan server stopped [${project.name}]")
     }
 
     fun isRunning(): Boolean = server != null

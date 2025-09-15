@@ -1,5 +1,7 @@
 package se.snackesurf.intellij.klassresan.hooks
 
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.event.CaretEvent
 import com.intellij.openapi.editor.event.CaretListener
@@ -12,7 +14,7 @@ import se.snackesurf.intellij.klassresan.extractors.MethodNameExtractor
 import se.snackesurf.intellij.klassresan.extractors.PackageNameExtractor
 
 class EditorCaretListener(private val project: Project) : ProjectManagerListener {
-    private val publisher: Publisher = HttpPublisher()
+    private val publisher: Publisher = HttpPublisher(project)
     private var lastLine = 0
     private var lastKey = ""
 
@@ -35,27 +37,31 @@ class EditorCaretListener(private val project: Project) : ProjectManagerListener
                 }
                 lastLine = line
 
-                val packageName = packageNameExtractor.extractPackageName(vFile)
-                val className = classNameExtractor.extractClassName(vFile, line)
-                val methodName = methodNameExtractor.extractMethodName(vFile, line)
+                ApplicationManager.getApplication().executeOnPooledThread {
+                    ReadAction.compute<FrameInfo?, RuntimeException> {
+                        val packageName = packageNameExtractor.extractPackageName(vFile)
+                        val className = classNameExtractor.extractClassName(vFile, line)
+                        val methodName = methodNameExtractor.extractMethodName(vFile, line)
 
-                val key = "$packageName.$className.$methodName"
-                if (key == lastKey) {
-                    return
+                        val key = "$packageName.$className.$methodName"
+                        if (key == lastKey) {
+                            return@compute null
+                        }
+                        lastKey = key
+
+                        return@compute FrameInfo(
+                            fileName = vFile.name,
+                            filePath = vFile.path,
+                            clazz = className,
+                            pkg = packageName,
+                            line = line + 1,
+                            offset = event.editor.caretModel.offset,
+                            method = methodName
+                        )
+                    }?.let { frame ->
+                        publisher.publish(listOf(frame), "editor")
+                    }
                 }
-                lastKey = key
-
-                val frame = FrameInfo(
-                    fileName = vFile.name,
-                    filePath = vFile.path,
-                    clazz = className,
-                    pkg = packageName,
-                    line = line + 1,
-                    offset = event.editor.caretModel.offset,
-                    method = methodName
-                )
-
-                publisher.publish(listOf(frame), "editor")
             }
         }, project)
     }

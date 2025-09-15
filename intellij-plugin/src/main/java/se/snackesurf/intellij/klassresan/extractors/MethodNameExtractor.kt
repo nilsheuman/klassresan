@@ -13,18 +13,17 @@ import java.util.regex.Pattern;
 
 class MethodNameExtractor(private val project: Project) {
 
-    fun extractMethodName(file: VirtualFile, line: Int): String =
-        ReadAction.compute<String, RuntimeException> {
-            val psiFile: PsiFile = PsiManager.getInstance(project).findFile(file) ?: return@compute UNKNOWN
-            val doc: Document = FileDocumentManager.getInstance().getDocument(file) ?: return@compute UNKNOWN
+    fun extractMethodName(file: VirtualFile, line: Int): String {
+        val psiFile: PsiFile = PsiManager.getInstance(project).findFile(file) ?: return UNKNOWN
+        val doc: Document = FileDocumentManager.getInstance().getDocument(file) ?: return UNKNOWN
 
-            val safeLine = line.coerceIn(0, doc.lineCount - 1)
-            val offset = doc.getLineStartOffset(safeLine)
-            val element = psiFile.findElementAt(offset) ?: return@compute UNKNOWN
+        val safeLine = line.coerceIn(0, doc.lineCount - 1)
+        val offset = doc.getLineStartOffset(safeLine)
+        val element = psiFile.findElementAt(offset) ?: return UNKNOWN
 
-            val method = findContainingMethod(element)
-            method?.let { extractMethodNameFromElement(it) } ?: UNKNOWN
-        }
+        val method = findContainingMethod(element)
+        return method?.let { extractMethodNameFromElement(it) } ?: UNKNOWN
+    }
 
     private fun extractMethodNameFromElement(methodElement: PsiElement): String =
         try {

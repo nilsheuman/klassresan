@@ -1,12 +1,13 @@
 package se.snackesurf.intellij.klassresan;
 
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.project.Project
 import se.snackesurf.intellij.klassresan.settings.KlassresanSettings
 import java.net.HttpURLConnection
 import java.net.URI
 
-class HttpPublisher : Publisher {
-    private val settings = KlassresanSettings.getInstance()
+class HttpPublisher(private val project: Project) : Publisher {
+    private val settings = KlassresanSettings.getInstance(project)
 
     override fun publish(frames: List<FrameInfo>, source: String) {
         val baseUrl = settings.httpBaseUrl

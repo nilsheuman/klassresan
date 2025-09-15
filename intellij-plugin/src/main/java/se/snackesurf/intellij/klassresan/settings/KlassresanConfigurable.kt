@@ -1,13 +1,14 @@
 package se.snackesurf.intellij.klassresan.settings
 
 import com.intellij.openapi.options.Configurable
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import se.snackesurf.intellij.klassresan.hooks.ServerProjectActivity
 import java.awt.Component
 import java.awt.Dimension
 import javax.swing.*
 
-internal class KlassresanConfigurable : Configurable {
+internal class KlassresanConfigurable(private val project: Project) : Configurable {
     private val mainPanel = JPanel()
     private val serverPanel = JPanel()
     private val clientPanel = JPanel()
@@ -33,7 +34,7 @@ internal class KlassresanConfigurable : Configurable {
     private val serverEnabledCheckBox = JCheckBox("Enable Server")
 
     init {
-        val settings = KlassresanSettings.getInstance()
+        val settings = KlassresanSettings.getInstance(project)
 
         mainPanel.layout = BoxLayout(mainPanel, BoxLayout.Y_AXIS)
 
@@ -88,7 +89,6 @@ internal class KlassresanConfigurable : Configurable {
 
         // Add listener to server enable checkbox to start/stop server
         serverEnabledCheckBox.addActionListener {
-            val project = ProjectManager.getInstance().openProjects[0]
             val server = project.getUserData(ServerProjectActivity.KEY)
             settings.serverEnabled = serverEnabledCheckBox.isSelected
             
@@ -103,7 +103,7 @@ internal class KlassresanConfigurable : Configurable {
                     val status = server.start()
                     logArea.append(status + "\n")
                 } catch (ex: Exception) {
-                    logArea.append("Could not start server\n")
+                    logArea.append("Could not start server\n${ex.message}\n")
                 }
             } else {
                 server!!.stop()
@@ -116,8 +116,7 @@ internal class KlassresanConfigurable : Configurable {
         serverEnabledCheckBox.isSelected = settings.serverEnabled
         portField.text = settings.serverPort.toString()
 
-        val project1 = ProjectManager.getInstance().openProjects[0]
-        val server1 = project1.getUserData(ServerProjectActivity.KEY)
+        val server1 = project.getUserData(ServerProjectActivity.KEY)
         val status =
             if (server1 != null && server1.isRunning()) "is running on port " + server1.getPort() else "is not running"
         logArea.append("Server $status\n")
@@ -132,7 +131,7 @@ internal class KlassresanConfigurable : Configurable {
     }
 
     override fun isModified(): Boolean {
-        val settings = KlassresanSettings.getInstance()
+        val settings = KlassresanSettings.getInstance(project)
         return baseUrlField.text != settings.httpBaseUrl ||
                 clientEnabledCheckBox.isSelected != settings.clientEnabled ||
                 serverEnabledCheckBox.isSelected != settings.serverEnabled ||
@@ -140,7 +139,7 @@ internal class KlassresanConfigurable : Configurable {
     }
 
     override fun apply() {
-        val settings = KlassresanSettings.getInstance()
+        val settings = KlassresanSettings.getInstance(project = project)
         settings.httpBaseUrl = baseUrlField.text
         settings.clientEnabled = clientEnabledCheckBox.isSelected
         settings.serverEnabled = serverEnabledCheckBox.isSelected

@@ -9,6 +9,6 @@ class HierarchyProjectActivity : ProjectActivity {
     override suspend fun execute(project: Project) {
         val connection = project.messageBus.connect()
         connection.subscribe(ToolWindowManagerListener.TOPIC, HierarchyToolbarInjector())
-        println("HierarchyToolbarInjector subscribed (ProjectActivity)")
+//        println("HierarchyToolbarInjector subscribed (ProjectActivity)")
     }
 }

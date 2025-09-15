@@ -6,7 +6,7 @@ import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 
 @State(name = "KlassresanSettings", storages = [Storage("klassresan.xml")])
-@Service
+@Service(Service.Level.PROJECT)
 class KlassresanSettings : PersistentStateComponent<KlassresanSettings.State> {
 
     data class State(
@@ -40,8 +40,7 @@ class KlassresanSettings : PersistentStateComponent<KlassresanSettings.State> {
         set(value) { myState.serverPort = value }
 
     companion object {
-        fun getInstance(): KlassresanSettings =
-            com.intellij.openapi.application.ApplicationManager.getApplication()
-                .getService(KlassresanSettings::class.java)
+        fun getInstance(project: com.intellij.openapi.project.Project): KlassresanSettings =
+            project.getService(KlassresanSettings::class.java)
     }
 }

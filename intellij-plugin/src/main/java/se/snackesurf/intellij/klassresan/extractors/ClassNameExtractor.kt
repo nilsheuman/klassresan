@@ -1,6 +1,5 @@
 package se.snackesurf.intellij.klassresan.extractors
 
-import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
@@ -12,18 +11,17 @@ import java.util.regex.Pattern
 
 class ClassNameExtractor(private val project: Project) {
 
-    fun extractClassName(file: VirtualFile, line: Int): String =
-        ReadAction.compute<String, RuntimeException> {
-            val psiFile: PsiFile = PsiManager.getInstance(project).findFile(file) ?: return@compute UNKNOWN
-            val doc: Document = FileDocumentManager.getInstance().getDocument(file) ?: return@compute UNKNOWN
+    fun extractClassName(file: VirtualFile, line: Int): String {
+        val psiFile: PsiFile = PsiManager.getInstance(project).findFile(file) ?: return UNKNOWN
+        val doc: Document = FileDocumentManager.getInstance().getDocument(file) ?: return UNKNOWN
 
-            val safeLine = line.coerceIn(0, doc.lineCount - 1)
-            val offset = doc.getLineStartOffset(safeLine)
-            val element = psiFile.findElementAt(offset) ?: return@compute UNKNOWN
+        val safeLine = line.coerceIn(0, doc.lineCount - 1)
+        val offset = doc.getLineStartOffset(safeLine)
+        val element = psiFile.findElementAt(offset) ?: return UNKNOWN
 
-            val clazz = findContainingClass(element)
-            clazz?.let { extractClassNameFromElement(it) } ?: UNKNOWN
-        }
+        val clazz = findContainingClass(element)
+        return clazz?.let { extractClassNameFromElement(it) } ?: UNKNOWN
+    }
 
     private fun extractClassNameFromElement(classElement: PsiElement): String =
         try {

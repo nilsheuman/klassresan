@@ -10,7 +10,7 @@ import java.awt.BorderLayout
 
 class HierarchyToolbarInjector : ToolWindowManagerListener {
     override fun toolWindowsRegistered(ids: List<String>, toolWindowManager: ToolWindowManager) {
-        println("toolWindowsRegistered $ids")
+//        println("toolWindowsRegistered $ids")
     }
     override fun stateChanged(toolWindowManager: ToolWindowManager) {
 //        println("stateChanged")
