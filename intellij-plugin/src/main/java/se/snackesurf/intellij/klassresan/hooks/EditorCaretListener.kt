@@ -39,25 +39,30 @@ class EditorCaretListener(private val project: Project) : ProjectManagerListener
 
                 ApplicationManager.getApplication().executeOnPooledThread {
                     ReadAction.compute<FrameInfo?, RuntimeException> {
-                        val packageName = packageNameExtractor.extractPackageName(vFile)
-                        val className = classNameExtractor.extractClassName(vFile, line)
-                        val methodName = methodNameExtractor.extractMethodName(vFile, line)
+                        try {
+                            val packageName = packageNameExtractor.extractPackageName(vFile)
+                            val className = classNameExtractor.extractClassName(vFile, line)
+                            val methodName = methodNameExtractor.extractMethodName(vFile, line)
 
-                        val key = "$packageName.$className.$methodName"
-                        if (key == lastKey) {
+                            val key = "$packageName.$className.$methodName"
+                            if (key == lastKey) {
+                                return@compute null
+                            }
+                            lastKey = key
+
+                            return@compute FrameInfo(
+                                fileName = vFile.name,
+                                filePath = vFile.path,
+                                clazz = className,
+                                pkg = packageName,
+                                line = line + 1,
+                                offset = event.editor.caretModel.offset,
+                                method = methodName
+                            )
+                        } catch (e: Exception) {
+                            println("failed reading file in editor caret ${e.message}") // seems to happen in dialogs
                             return@compute null
                         }
-                        lastKey = key
-
-                        return@compute FrameInfo(
-                            fileName = vFile.name,
-                            filePath = vFile.path,
-                            clazz = className,
-                            pkg = packageName,
-                            line = line + 1,
-                            offset = event.editor.caretModel.offset,
-                            method = methodName
-                        )
                     }?.let { frame ->
                         publisher.publish(listOf(frame), "editor")
                     }
