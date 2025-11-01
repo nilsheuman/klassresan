@@ -1,123 +1,3 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Klassresan</title>
-  <script src="https://unpkg.com/viz.js@2.1.2/viz.js"></script>
-  <script src="https://unpkg.com/viz.js@2.1.2/full.render.js"></script>
-  <style>
-    body {
-      margin: 0;
-      font-family: sans-serif;
-      background: #fff;
-    }
-    #actionBar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: #333;
-      color: #fff;
-      padding: 10px 15px;
-    }
-    #title {
-      font-size: 1.2em;
-      font-weight: bold;
-      display: flex;
-      align-items: center;
-    }
-    #status {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      display: inline-block;
-      margin-left: 8px;
-    }
-    #status.connected { background: #0c0; }
-    #status.disconnected { background: red; }
-
-    #buttons button {
-      margin-left: 8px;
-      padding: 6px 10px;
-      border: none;
-      border-radius: 4px;
-      background: #555;
-      color: #fff;
-      cursor: pointer;
-    }
-    #buttons button:hover {
-      background: #777;
-    }
-
-    #settings {
-      display: none;
-      padding: 15px;
-      background: #fff;
-      border-bottom: 1px solid #ccc;
-    }
-    #settings label {
-      display: block;
-      margin: 10px 0 5px;
-    }
-    #settings input, #settings textarea {
-      width: 100%;
-      padding: 5px;
-      box-sizing: border-box;
-    }
-    #settings textarea {
-      height: 50px;
-    }
-
-    #graph {
-      padding: 15px;
-      background: #fff;
-      min-height: 80vh;
-    }
-    #graph svg {
-      transform: scale(0.75);
-      transform-origin: top left;
-    }
-
-    #dot {
-      display: none;
-    }
-  </style>
-</head>
-<body>
-
-<div id="actionBar">
-  <div id="title">
-    Klassresan <span id="status" class="disconnected"></span>
-  </div>
-  <div id="buttons">
-    <button onclick="toggleSettings()">⚙ Settings</button>
-    <button onclick="clearGraph()">Clear</button>
-  </div>
-</div>
-
-<div id="settings">
-  <label>Websocket URL (empty = ws://localhost:8091):
-    <input type="text" id="serverUrl">
-  </label>
-
-  <label>Intellij Server URL (empty = http://localhost:8093):
-    <input type="text" id="intellijServerUrl">
-  </label>
-
-  <label>Ignored Classes (comma separated):
-    <textarea id="ignoredClasses"></textarea>
-  </label>
-
-  <label>Ignored Projects/Packages (comma separated):
-    <textarea id="ignoredProjects"></textarea>
-  </label>
-
-  <button onclick="saveSettings()">Save Settings</button>
-</div>
-
-<div id="graph"></div>
-<pre id="dot"></pre>
-
-<script>
 let ws;
 let nodes = new Map();
 let edges = new Set();
@@ -159,6 +39,14 @@ function saveSettings() {
 
 function toggleSettings() {
   const el = document.getElementById("settings");
+  el.style.display = el.style.display === "none" ? "block" : "none";
+}
+function toggleEdit() {
+  const el = document.getElementById("edit");
+  el.style.display = el.style.display === "none" ? "block" : "none";
+}
+function toggleExport() {
+  const el = document.getElementById("export");
   el.style.display = el.style.display === "none" ? "block" : "none";
 }
 
@@ -315,7 +203,7 @@ function renderGraph() {
         // console.log('node', node)
         const title = node.querySelector('title')?.textContent;
         if (title) {
-          console.log('title', title)
+          // console.log('title', title)
           node.style.cursor = 'pointer';
           node.addEventListener('click', () => openEditor(title));
         }
@@ -326,10 +214,3 @@ function renderGraph() {
 
 loadSettings();
 connect();
-</script>
-
-<!-- include sample data for offline testing -->
-<!-- <script src="sample.js"></script> -->
-
-</body>
-</html>

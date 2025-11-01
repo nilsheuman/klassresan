@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Klassresan</title>
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <script src="https://unpkg.com/viz.js@2.1.2/viz.js"></script>
+  <script src="https://unpkg.com/viz.js@2.1.2/full.render.js"></script>
+  <link rel=stylesheet href="style.css">
+</head>
+<body>
+
+<div id="actionBar">
+  <div id="title">
+    Klassresan <span id="status" class="disconnected"></span>
+  </div>
+  <div id="buttons">
+    <button onclick="toggleSettings()">Settings</button>
+    <button onclick="toggleEdit()">Edit</button>
+    <button onclick="toggleExport()">Export</button>
+    <button onclick="clearGraph()">Clear</button>
+  </div>
+</div>
+
+<div id="settings">
+  <label>Websocket URL (empty = ws://localhost:8091):
+    <input type="text" id="serverUrl">
+  </label>
+
+  <label>Intellij Server URL (empty = http://localhost:8093):
+    <input type="text" id="intellijServerUrl">
+  </label>
+
+  <label>Ignored Classes (comma separated):
+    <textarea id="ignoredClasses"></textarea>
+  </label>
+
+  <label>Ignored Projects/Packages (comma separated):
+    <textarea id="ignoredProjects"></textarea>
+  </label>
+
+  <button onclick="saveSettings()">Save Settings</button>
+</div>
+
+<div id="edit">
+  
+</div>
+
+<div id="export">
+
+</div>
+
+<div id="graph"></div>
+<pre id="dot"></pre>
+
+<script src="main.js"></script>
+<!-- include sample data for offline testing -->
+<script src="sample.js"></script>
+
+</body>
+</html>

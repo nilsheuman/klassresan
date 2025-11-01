@@ -4,25 +4,29 @@ const path = require("path");
 const WebSocket = require("ws");
 
 const server = http.createServer((req, res) => {
-  if (req.method === "GET" && (req.url === "/" || req.url === "/index.html")) {
-    const filePath = path.join(__dirname, "index.html");
+  if (req.method === "GET") {
+    let filePath;
+    if (req.url === "/" || req.url === "/index.html") {
+      filePath = path.join(__dirname, "public", "index.html");
+    } else {
+      filePath = path.join(__dirname, "public", req.url);
+    }
+    console.log('GET', filePath)
+
     fs.readFile(filePath, (err, data) => {
       if (err) {
-        res.writeHead(500, { "Content-Type": "text/plain" });
-        res.end("Error loading index.html\n");
+        res.writeHead(404, { "Content-Type": "text/plain" });
+        res.end("File not found\n");
       } else {
-        res.writeHead(200, { "Content-Type": "text/html" });
-        res.end(data);
-      }
-    });
-  } else if (req.method === "GET" && (req.url === "/sample.js")) {
-    const filePath = path.join(__dirname, "sample.js");
-    fs.readFile(filePath, (err, data) => {
-      if (err) {
-        res.writeHead(500, { "Content-Type": "text/plain" });
-        res.end("Error loading sample.js\n");
-      } else {
-        res.writeHead(200, { "Content-Type": "text/html" });
+        const ext = path.extname(filePath);
+        let contentType = "text/plain";
+        if (ext === ".html") contentType = "text/html";
+        if (ext === ".css") contentType = "text/css";
+        if (ext === ".js") contentType = "application/javascript";
+        if (ext === ".png") contentType = "image/png";
+        if (ext === ".jpg" || ext === ".jpeg") contentType = "image/jpeg";
+        
+        res.writeHead(200, { "Content-Type": contentType });
         res.end(data);
       }
     });
