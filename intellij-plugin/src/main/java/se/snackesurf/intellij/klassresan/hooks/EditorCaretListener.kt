@@ -8,6 +8,7 @@ import com.intellij.openapi.editor.event.CaretListener
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManagerListener
+import com.intellij.testFramework.LightVirtualFile
 import se.snackesurf.intellij.klassresan.*
 import se.snackesurf.intellij.klassresan.extractors.ClassNameExtractor
 import se.snackesurf.intellij.klassresan.extractors.MethodNameExtractor
@@ -30,6 +31,10 @@ class EditorCaretListener(private val project: Project) : ProjectManagerListener
                 val editor = event.editor
                 val doc = editor.document
                 val vFile = FileDocumentManager.getInstance().getFile(doc) ?: return
+                if (vFile is LightVirtualFile) {
+                    println("editor caret is LightVirtualFile, ignoring")
+                    return
+                }
 
                 val line = event.newPosition.line
                 if (line == lastLine) {
