@@ -3,6 +3,12 @@ body {
   font-family: sans-serif;
   background: #fff;
 }
+
+h4 {
+  margin-top: 0;
+}
+
+/* Action Bar */
 #actionBar {
   display: flex;
   align-items: center;
@@ -11,12 +17,14 @@ body {
   color: #fff;
   padding: 10px 15px;
 }
+
 #title {
   font-size: 1.2em;
   font-weight: bold;
   display: flex;
   align-items: center;
 }
+
 #status {
   width: 12px;
   height: 12px;
@@ -24,56 +32,216 @@ body {
   display: inline-block;
   margin-left: 8px;
 }
+
 #status.connected {
   background: #0c0;
 }
+
 #status.disconnected {
   background: red;
 }
 
-#buttons button {
+/* Buttons - Shared Styles */
+button,
+.btn {
+  padding: 6px 12px;
   margin-left: 8px;
-  padding: 6px 10px;
   border: none;
   border-radius: 4px;
   background: #555;
   color: #fff;
   cursor: pointer;
+  font-size: 0.9em;
 }
-#buttons button:hover {
+
+button:hover,
+.btn:hover {
   background: #777;
 }
 
-#settings {
-  display: none;
+button.active {
+  background: #888;
+}
+
+button.danger {
+  background: #e03131;
+}
+
+button.danger:hover {
+  background: #c92a2a;
+}
+
+/* Color Picker Buttons */
+.colorBtn {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  margin-left: 6px;
+  border: 2px solid #333;
+  border-radius: 4px;
+  transition: transform 0.1s;
+}
+
+.colorBtn:hover {
+  transform: scale(1.1);
+}
+
+.colorBtn.active {
+  border: 3px solid #000;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px #000;
+}
+
+.colorBtn[data-color="#000000"] {
+  background: #000000;
+}
+
+.colorBtn[data-color="#e03131"] {
+  background: #e03131;
+}
+
+.colorBtn[data-color="#2f9e44"] {
+  background: #2f9e44;
+}
+
+.colorBtn[data-color="#1971c2"] {
+  background: #1971c2;
+}
+
+.colorBtn[data-color="#f08c00"] {
+  background: #f08c00;
+}
+
+.colorBtn[data-color="#ae3ec9"] {
+  background: #ae3ec9;
+}
+
+#filterIndicator {
+  color: #f08c00;
+  margin-left: 4px;
+  font-size: 1.2em;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Expandable Sections */
+.expandable {
   padding: 15px;
-  background: #fff;
+  background: #eee;
   border-bottom: 1px solid #ccc;
 }
-#settings label {
+
+.expandable label {
   display: block;
   margin: 10px 0 5px;
 }
-#settings input,
-#settings textarea {
+
+.expandable input,
+.expandable textarea {
   width: 100%;
   padding: 5px;
   box-sizing: border-box;
 }
-#settings textarea {
+
+.expandable textarea {
   height: 50px;
 }
 
+/* Mode Controls */
+#modeControls {
+  position: relative;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 8px 12px;
+  margin: 15px;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+#modeControls button {
+  margin-left: 0;
+}
+
+#modeControls .modeButton.active {
+  background: #0c0;
+}
+
+#drawColorPicker {
+  display: flex;
+  gap: 6px;
+}
+
+#selectedNodeInfo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 12px;
+  border-left: 2px solid #ddd;
+}
+
+#selectedNodeText {
+  font-family: monospace;
+  font-size: 0.9em;
+  color: #333;
+}
+
+/* Graph */
+#graphContainer {
+  position: relative;
+}
+
 #graph {
-  padding: 15px;
+  padding: 0 15px 15px 15px;
   background: #fff;
   min-height: 80vh;
 }
+
 #graph svg {
   transform: scale(0.75);
   transform-origin: top left;
 }
 
-#dot {
-  display: none;
+/* Draw Canvas */
+#drawCanvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  margin-top: 60px;
+  margin-left: 15px;
+  border: dashed 1px gray;
+}
+
+#drawCanvas.drawingActive {
+  pointer-events: auto;
+  cursor: crosshair;
+}
+
+/* Export Section */
+#export .dotControls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 30px 0 10px;
+  flex-wrap: nowrap; /* Prevent wrapping */
+}
+
+#export .dotControls > * {
+  flex-shrink: 0; /* Prevent elements from shrinking */
+}
+
+#export .dotControls label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+  white-space: nowrap; /* Prevent text wrapping */
+}
+
+#export .dotControls button {
+  margin: 0;
 }

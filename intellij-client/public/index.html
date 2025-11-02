@@ -1,61 +1,101 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <meta charset="UTF-8">
-  <title>Klassresan</title>
-  <link rel="icon" href="/favicon.ico" sizes="any">
-  <script src="https://unpkg.com/viz.js@2.1.2/viz.js"></script>
-  <script src="https://unpkg.com/viz.js@2.1.2/full.render.js"></script>
-  <link rel=stylesheet href="style.css">
-</head>
-<body>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Klassresan</title>
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <script src="https://unpkg.com/viz.js@2.1.2/viz.js"></script>
+    <script src="https://unpkg.com/viz.js@2.1.2/full.render.js"></script>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="actionBar">
+      <div id="title">
+        Klassresan <span id="status" class="disconnected"></span>
+      </div>
+      <div id="buttons">
+        <button id="editToggle">
+          Filters<span id="filterIndicator" class="hidden">●</span>
+        </button>
+        <button id="exportToggle">Export</button>
+        <button id="settingsToggle">Settings</button>
+        <button id="clearGraph" class="danger">Clear</button>
+      </div>
+    </div>
 
-<div id="actionBar">
-  <div id="title">
-    Klassresan <span id="status" class="disconnected"></span>
-  </div>
-  <div id="buttons">
-    <button onclick="toggleSettings()">Settings</button>
-    <button onclick="toggleEdit()">Edit</button>
-    <button onclick="toggleExport()">Export</button>
-    <button onclick="clearGraph()">Clear</button>
-  </div>
-</div>
+    <div id="settings" class="expandable">
+      <label
+        >Websocket URL (empty = ws://localhost:8091):
+        <input type="text" id="serverUrl" />
+      </label>
 
-<div id="settings">
-  <label>Websocket URL (empty = ws://localhost:8091):
-    <input type="text" id="serverUrl">
-  </label>
+      <label
+        >Intellij Server URL (empty = http://localhost:8093):
+        <input type="text" id="intellijServerUrl" />
+      </label>
 
-  <label>Intellij Server URL (empty = http://localhost:8093):
-    <input type="text" id="intellijServerUrl">
-  </label>
+      <button id="saveSettings">Save Settings</button>
+    </div>
 
-  <label>Ignored Classes (comma separated):
-    <textarea id="ignoredClasses"></textarea>
-  </label>
+    <div id="edit" class="expandable">
+      <h4>Filtered Nodes</h4>
+      <label
+        >Ignored Classes (comma separated):
+        <textarea id="ignoredClasses"></textarea>
+      </label>
+      <label
+        >Ignored Projects/Packages (comma separated):
+        <textarea id="ignoredProjects"></textarea>
+      </label>
+    </div>
 
-  <label>Ignored Projects/Packages (comma separated):
-    <textarea id="ignoredProjects"></textarea>
-  </label>
+    <div id="export" class="expandable">
+      <button id="exportSvg">Export SVG</button>
+      <button id="exportPng">Export PNG</button>
+      <button id="exportDot">Export DOT</button>
+      <button id="exportExcalidraw">Export ExcaliDraw</button>
 
-  <button onclick="saveSettings()">Save Settings</button>
-</div>
+      <div class="dotControls">
+        <div class="title">DOT Source</div>
+        <label><input type="checkbox" id="lockDot" /> Lock</label>
+        <button id="renderDot">Render</button>
+      </div>
+      <textarea id="dotTextarea" rows="15" cols="80"></textarea><br />
+    </div>
 
-<div id="edit">
-  
-</div>
+    <div id="graphContainer">
+      <div id="modeControls">
+        <button id="modeEdit" class="modeButton" data-mode="edit">Edit</button>
+        <button id="modeDraw" class="modeButton" data-mode="draw">Draw</button>
+        <span id="drawColorPicker" class="hidden">
+          <button class="colorBtn" data-color="#000000"></button>
+          <button class="colorBtn" data-color="#e03131"></button>
+          <button class="colorBtn" data-color="#2f9e44"></button>
+          <button class="colorBtn" data-color="#1971c2"></button>
+          <button class="colorBtn" data-color="#f08c00"></button>
+          <button class="colorBtn" data-color="#ae3ec9"></button>
+        </span>
+        <button id="clearDrawing" class="danger hidden">Clear Drawing</button>
+        <button id="undoDraw" class="hidden">Undo</button>
+        <span id="selectedNodeInfo" class="hidden">
+          <span id="selectedNodeText"></span>
+          <button id="removeNode" class="danger">Delete</button>
+        </span>
+      </div>
+      <div id="graph"></div>
+      <canvas id="drawCanvas"></canvas>
+    </div>
 
-<div id="export">
+    <pre id="dot" class="hidden"></pre>
 
-</div>
-
-<div id="graph"></div>
-<pre id="dot"></pre>
-
-<script src="main.js"></script>
-<!-- include sample data for offline testing -->
-<script src="sample.js"></script>
-
-</body>
+    <script src="exporters.js"></script>
+    <script src="state.js"></script>
+    <script src="graph.js"></script>
+    <script src="modes.js"></script>
+    <script src="websocket.js"></script>
+    <script src="settings.js"></script>
+    <script src="main.js"></script>
+    <!-- include sample data for offline testing -->
+    <script src="sample.js"></script>
+  </body>
 </html>
